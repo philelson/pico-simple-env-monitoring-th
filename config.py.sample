@@ -1,0 +1,16 @@
+#Change in value to trigger mqtt event
+humidity_delta_threshold = 0.1
+temp_delta_threshold = 0.1
+
+# MQTT Credentials
+# sudo mosquitto_passwd /etc/mosquitto/passwords .....
+# mosquitto_sub -h {host} -t "{topic}" -u {username} -P {password}
+mqtt_client_id = "client_id"
+mqtt_username = 'mqtt_username'
+mqtt_password = "mqtt_password"
+mqtt_server = 'IP/HOST'
+mqtt_port = 1883
+
+#Topics
+topic_temp_change = "topic_temp_change"
+topic_humidity_change = "topic_humidity_change"
