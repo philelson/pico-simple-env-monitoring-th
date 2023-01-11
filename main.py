@@ -1,7 +1,6 @@
 import secrets
 import config
 import network
-import socket
 import time
 import machine
 from time import sleep
