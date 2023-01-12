@@ -9,6 +9,7 @@ from picozero import pico_led
 from umqttsimple import MQTTClient
 from machine import Pin
 
+
 # 
 # Functions
 #
@@ -37,8 +38,8 @@ def mqttConnect(mqtt_client_id, mqtt_server, mqtt_port, mqtt_username, mqtt_pass
     print('Connected to %s MQTT Broker'%(config.mqtt_server))
     return client
 
-def mqttReconnect():
-    print('Failed to connected to MQTT Broker. Reconnecting...')
+def restartMachine():
+    print('Failed to connected to services. Restarting...')
     time.sleep(5)
     machine.reset()
 
@@ -48,27 +49,33 @@ def tempHasChanged():
     delta = (currentTemp - previousTemp)
     if delta < 0: delta = delta * -1
     hasChanged = delta >= config.temp_delta_threshold
-    if hasChanged: print(f'currentTemp {currentTemp}, previousTemp {previousTemp}, delta {delta}, threshold {config.temp_delta_threshold} hasChanged {hasChanged}')
-    return hasChanged
+    if hasChanged: 
+        Environment.previousTemperature = currentTemp
+        print(f'currentTemp {currentTemp}, previousTemp {previousTemp}, delta {delta}, threshold {config.temp_delta_threshold} hasChanged {hasChanged}')
+    return hasChanged, currentTemp
 
 def humidityHasChanged():
-    currentHumidity= Environment.getRelativeHumidity()
+    currentHumidity = Environment.getRelativeHumidity()
     previousHumidity = Environment.previousHumidity
     delta = (currentHumidity - previousHumidity)
     if delta < 0: delta = delta * -1
     hasChanged = delta >= config.humidity_delta_threshold
-    if hasChanged: print(f'currentHumidity {currentHumidity}, previousHumidity {previousHumidity}, delta {delta}, threshold {config.humidity_delta_threshold}, hasChanged {hasChanged}')
-    return hasChanged
+    if hasChanged: 
+        Environment.previousHumidity = currentHumidity
+        print(f'currentHumidity {currentHumidity}, previousHumidity {previousHumidity}, delta {delta}, threshold {config.humidity_delta_threshold}, hasChanged {hasChanged}')
+    return hasChanged, currentHumidity
 
 def ledFlash():
     pico_led.on()
     sleep(0.1)
     pico_led.off()
     sleep(0.1)
+    
 #
 # Main Program
 # 
 try:
+    print('pico-simple-env-monitoring-th v0.0.1')
     ip = connect(secrets.ssid, secrets.password)
     if False == ip:
         ip = connect(secrets.ssid2, secrets.password2)
@@ -78,16 +85,18 @@ try:
     client = mqttConnect(config.mqtt_client_id, config.mqtt_server, config.mqtt_port, config.mqtt_username, config.mqtt_password)
 
     while True:
-        if True == tempHasChanged():
-            currentTemp = Environment.getTemp();
-            Environment.previousTemperature = currentTemp
-            client.publish(config.topic_temp_change, str(Environment.getTemp()))
+        tempData = tempHasChanged();
+        humidityData = humidityHasChanged();
+
+        if True == tempData[0]:
+            client.publish(config.topic_temp_change, str(tempData[1]))
             ledFlash()
-        if True == humidityHasChanged():
-            currentHumidity = Environment.getRelativeHumidity()
-            Environment.previousHumidity = currentHumidity
-            client.publish(config.topic_humidity_change, str(currentHumidity))       
+        if True == humidityData[0]:
+            client.publish(config.topic_humidity_change, str(humidityData[1]))       
             ledFlash()
 except KeyboardInterrupt:
-    print('Error')
-    machine.reset()
+    print('KeyboardInterrupt Error')
+    restartMachine()
+except OSError as e:
+    print('OSError Error')
+    restartMachine()
