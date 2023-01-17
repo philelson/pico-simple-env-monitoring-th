@@ -2,6 +2,11 @@
 humidity_delta_threshold = 0.1
 temp_delta_threshold = 0.1
 
+#Positive or negative offset corrections
+humidity_calibration_correction = 0
+temp_calibration_correction = 0
+calibration_date='date_of_calibbration'
+
 # MQTT Credentials
 # sudo mosquitto_passwd /etc/mosquitto/passwords .....
 # mosquitto_sub -h {host} -t "{topic}" -u {username} -P {password}

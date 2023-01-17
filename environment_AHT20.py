@@ -1,7 +1,8 @@
 from environment__ import EnvironmentInterface
-import utime
 from machine import Pin, I2C
+import utime
 import ahtx0
+import config
 
 # https://github.com/targetblank/micropython_ahtx0
 class EnvironmentAHT20(EnvironmentInterface):        
@@ -19,10 +20,13 @@ class EnvironmentAHT20(EnvironmentInterface):
     
     def getTemp():
         EnvironmentAHT20.initI2C()
-        return EnvironmentAHT20.sensor.temperature;
+        dataReading = EnvironmentAHT20.sensor.temperature
+        return dataReading + config.temp_calibration_correction
 
     def getRelativeHumidity():
         EnvironmentAHT20.initI2C()
-        return EnvironmentAHT20.sensor.relative_humidity
+        dataReading = EnvironmentAHT20.sensor.relative_humidity
+        return dataReading + config.humidity_calibration_correction
+
 
 

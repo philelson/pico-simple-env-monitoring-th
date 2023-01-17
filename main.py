@@ -9,7 +9,6 @@ from picozero import pico_led
 from umqttsimple import MQTTClient
 from machine import Pin
 
-
 # 
 # Functions
 #
@@ -51,7 +50,7 @@ def tempHasChanged():
     hasChanged = delta >= config.temp_delta_threshold
     if hasChanged: 
         Environment.previousTemperature = currentTemp
-        print(f'currentTemp {currentTemp}, previousTemp {previousTemp}, delta {delta}, threshold {config.temp_delta_threshold} hasChanged {hasChanged}')
+        print(f'tempC {currentTemp}, tempP {previousTemp}, delta {delta}, changed? {hasChanged}')
     return hasChanged, currentTemp
 
 def humidityHasChanged():
@@ -62,7 +61,7 @@ def humidityHasChanged():
     hasChanged = delta >= config.humidity_delta_threshold
     if hasChanged: 
         Environment.previousHumidity = currentHumidity
-        print(f'currentHumidity {currentHumidity}, previousHumidity {previousHumidity}, delta {delta}, threshold {config.humidity_delta_threshold}, hasChanged {hasChanged}')
+        print(f'humC {currentHumidity}, humP {previousHumidity}, delta {delta}, changed? {hasChanged}')
     return hasChanged, currentHumidity
 
 def ledFlash():
@@ -70,12 +69,32 @@ def ledFlash():
     sleep(0.1)
     pico_led.off()
     sleep(0.1)
-    
+
+def startupSummary():
+    print('version: v0.0.2')
+    print(f'calibration date: {config.calibration_date}')
+
+    print('MQTT config')
+    print(f'--> client id: {config.mqtt_client_id}')
+    print(f'--> username: {config.mqtt_username}')
+    print(f'--> server: {config.mqtt_server}')
+    print(f'--> port: {config.mqtt_port}')
+
+    print('humidity config')
+    print(f'--> topic: {config.topic_humidity_change}')
+    print(f'--> delta threshold: {config.humidity_delta_threshold}')
+    print(f'--> calibration delta: {config.humidity_calibration_correction}')
+
+    print('temperature config')
+    print(f'--> topic: {config.topic_temp_change}')
+    print(f'--> delta threshold: {config.temp_delta_threshold}')
+    print(f'--> calibration delta: {config.temp_calibration_correction}')
+
 #
 # Main Program
 # 
 try:
-    print('pico-simple-env-monitoring-th v0.0.1')
+    startupSummary()
     ip = connect(secrets.ssid, secrets.password)
     if False == ip:
         ip = connect(secrets.ssid2, secrets.password2)
