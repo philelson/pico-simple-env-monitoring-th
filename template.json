@@ -1,0 +1,10 @@
+{{
+    "name": "{node_name}",
+    "temperature": {temperature},
+    "unit_t": "{unit_t}",
+    "humidity": {humidity},
+    "unit_h": "{unit_h}",
+    "version": "{version}",
+    "resources": "{resources}"
+}}
+

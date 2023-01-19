@@ -8,6 +8,9 @@ from environment_AHT20 import EnvironmentAHT20 as Environment
 from picozero import pico_led
 from umqttsimple import MQTTClient
 from machine import Pin
+import gc
+
+rawPayloadContents = None;
 
 # 
 # Functions
@@ -17,7 +20,7 @@ def connect(ssid, password):
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     wlan.connect(ssid, password)
-    connectionAttemptLimit = 10
+    connectionAttemptLimit = config.wifi_connection_attempts
     connectionAttempts = 0
     while wlan.isconnected() == False:
         pico_led.off()
@@ -70,8 +73,8 @@ def ledFlash():
     pico_led.off()
     sleep(0.1)
 
-def startupSummary():
-    print('version: v0.0.2')
+def startupSummary(version: str):
+    print(f'version: {version}')
     print(f'calibration date: {config.calibration_date}')
 
     print('MQTT config')
@@ -79,43 +82,62 @@ def startupSummary():
     print(f'--> username: {config.mqtt_username}')
     print(f'--> server: {config.mqtt_server}')
     print(f'--> port: {config.mqtt_port}')
+    print(f'--> topic: {config.topic}')
 
     print('humidity config')
-    print(f'--> topic: {config.topic_humidity_change}')
     print(f'--> delta threshold: {config.humidity_delta_threshold}')
     print(f'--> calibration delta: {config.humidity_calibration_correction}')
 
     print('temperature config')
-    print(f'--> topic: {config.topic_temp_change}')
     print(f'--> delta threshold: {config.temp_delta_threshold}')
     print(f'--> calibration delta: {config.temp_calibration_correction}')
+
+def getPayload(temperature: str, relativeHumidity: str, version: str) -> str:
+    global rawPayloadContents
+    if rawPayloadContents is None:
+        file = open(config.payload_template)
+        rawPayloadContents = file.read()
+        file.close()
+        
+    return rawPayloadContents.format(
+        temperature = temperature,
+        humidity = relativeHumidity,
+        node_name = config.topic,
+        version = version,
+        unit_t = config.unit_temperature,
+        unit_h = config.unit_relative_humidity,
+        resources = gc.mem_free()
+    )
 
 #
 # Main Program
 # 
 try:
-    startupSummary()
+    version = '0.0.3'
+    startupSummary(version)
     ip = connect(secrets.ssid, secrets.password)
     if False == ip:
         ip = connect(secrets.ssid2, secrets.password2)
     elif False == ip:
         print(f'Unable to connect to {secrets.ssid} or {secrets.ssid2}')
-    
+    print(f'--> IP address: {ip}')
     client = mqttConnect(config.mqtt_client_id, config.mqtt_server, config.mqtt_port, config.mqtt_username, config.mqtt_password)
 
     while True:
         tempData = tempHasChanged();
         humidityData = humidityHasChanged();
 
-        if True == tempData[0]:
-            client.publish(config.topic_temp_change, str(tempData[1]))
+        if True == tempData[0] or True == humidityData[0]:
+            formattedTemp = str(round(tempData[1], config.floating_point_decimal_places))
+            formattedHumidity = str(round(humidityData[1], config.floating_point_decimal_places))
+            payload = getPayload(formattedTemp, formattedHumidity, version)
+            client.publish(config.topic, payload)       
             ledFlash()
-        if True == humidityData[0]:
-            client.publish(config.topic_humidity_change, str(humidityData[1]))       
-            ledFlash()
-except KeyboardInterrupt:
-    print('KeyboardInterrupt Error')
+
+        time.sleep_ms(config.loop_delay_ms)
+except KeyboardInterrupt as e:
+    print(repr(e))
     restartMachine()
 except OSError as e:
-    print('OSError Error')
+    print(repr(e))
     restartMachine()

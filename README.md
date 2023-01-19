@@ -18,7 +18,8 @@ Upload the following files, main.py last as this runs the program.
 5. picozero.py
 6. secrets.py
 7. umqttsimple.py
-8. main.py
+8. template.json
+9. main.py
 
 # Debugging
 
